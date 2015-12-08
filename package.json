@@ -1,0 +1,23 @@
+{
+  "name": "git-credential-ejson",
+  "version": "1.0.0",
+  "description": "Utility to encode/decode with a current id_rsa[.pub], and use as a secure git credential source.",
+  "bin": {
+    "ejson": "ejson.js",
+    "git-credential-ejson": "helper.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "git",
+    "crypto",
+    "rsa",
+    "credentials"
+  ],
+  "author": "Eugene Lazutkin <eugene@lazutkin.com>",
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "node-rsa": "^0.2.26"
+  }
+}
