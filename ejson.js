@@ -13,10 +13,11 @@ var parseArgs = require('minimist');
 
 var args = parseArgs(process.argv.slice(2)), op, fileName, keyName = args.k;
 
-if (!('e' in args ^ 'd' in args)) {
-    console.log('Usage: ejson [-k keyFile] -e|-d [file]');
+if (+('e' in args) + +('d' in args) + +('l' in args) !== 1) {
+    console.log('Usage: ejson [-k keyFile] -e|-d|-l [file]');
     console.log('  Option -e: encrypt a file');
     console.log('  Option -d: decrypt a file');
+    console.log('  Option -l: print an encrypted file in clear text');
     console.log('  Option -k: use this file as a key, default: ~/.ssh/id_rsa');
     console.log('  If "file" is not specified ~/.credentials.json is used for encoding, and ~/.credentials.json.enc is used for decoding');
     process.exit(1);
@@ -25,9 +26,12 @@ if (!('e' in args ^ 'd' in args)) {
 if (args.e) {
     op = 'encrypt';
     fileName = args.e;
-} else {
+} else if (args.d) {
     op = 'decrypt';
     fileName = args.d;
+} else {
+    op = 'decrypt';
+    fileName = args.l;
 }
 
 if (typeof fileName != 'string') {
@@ -44,19 +48,19 @@ if (typeof keyName != 'string') {
 
 var outName = fileName;
 
-switch (op) {
-    case 'encrypt':
-        outName += '.enc';
-        console.log('Encrypting', fileName, 'to', outName, 'using', keyName, '...');
-        break;
-    case 'decrypt':
-        if (/\.enc$/.test(outName)) {
-            outName = outName.substr(0, outName.length - 4);
-        } else {
-            outName += '.json';
-        }
-        console.log('Decrypting', fileName, 'to', outName, 'using', keyName, '...');
-        break;
+if (args.e) {
+    outName += '.enc';
+    console.log('Encrypting', fileName, 'to', outName, 'using', keyName, '...');
+} else if (args.d) {
+    if (/\.enc$/.test(outName)) {
+        outName = outName.substr(0, outName.length - 4);
+    } else {
+        outName += '.json';
+    }
+    console.log('Decrypting', fileName, 'to', outName, 'using', keyName, '...');
+} else {
+    outName = null;
+    console.log('Decrypting', fileName, 'using', keyName, '...');
 }
 
 
@@ -65,17 +69,22 @@ switch (op) {
 try {
     var key = new NodeRSA(fs.readFileSync(keyName), 'pkcs1-private-pem'),
         input = fs.readFileSync(fileName);
-    if (op === '-e') {
+    if (args.e) {
         // check if valid JSON
         JSON.parse(input.toString());
     }
     var output = key[op](input);
-    if (op === '-d') {
+    if (args.d || args.l) {
         // check if valid JSON
-        JSON.parse(output.toString());
+        var store = JSON.parse(output.toString());
+        if (args.l) {
+            console.log(output.toString());
+        }
     }
-    fs.writeFileSync(outName, output);
-    fs.unlinkSync(fileName);
+    if (!args.l) {
+        fs.writeFileSync(outName, output);
+        fs.unlinkSync(fileName);
+    }
     console.log('Done');
 } catch(e) {
     console.error('ERROR:', e);
