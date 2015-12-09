@@ -76,7 +76,7 @@ try {
     var output = key[op](input);
     if (args.d || args.l) {
         // check if valid JSON
-        var store = JSON.parse(output.toString());
+        JSON.parse(output.toString());
         if (args.l) {
             console.log(output.toString());
         }

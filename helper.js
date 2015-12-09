@@ -143,7 +143,6 @@ function doIt () {
     done = true;
 
     if (dict.host) {
-        var key;
         switch (op) {
             case 'get':
                 var keys = [dict.host];
