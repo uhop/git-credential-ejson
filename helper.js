@@ -74,7 +74,7 @@ rl.on('line', function (line) {
                     }
                 }
                 if (parsed.path) {
-                    t = /^\/(.+)$/.exec(parsed.path);
+                    t = /^\/(.*)$/.exec(parsed.path);
                     if (t) {
                         parsed.path = t[1];
                     }
@@ -132,8 +132,19 @@ function copyProps (dst, src, props) {
     return dst;
 }
 
-function mutate (array, mutator) {
-    return array.map(mutator).concat(array);
+function generateKeys (dict) {
+    var keys = [];
+    if (dict.hasOwnProperty('username')) {
+        if (dict.hasOwnProperty('protocol')) {
+            keys.push(dict.protocol + '://' + dict.username + '@' + dict.host);
+        }
+        keys.push(dict.username + '@' + dict.host);
+    }
+    if (dict.hasOwnProperty('protocol')) {
+        keys.push(dict.protocol + '://' + dict.host);
+    }
+    keys.push(dict.host);
+    return keys;
 }
 
 function doIt () {
@@ -143,21 +154,10 @@ function doIt () {
     done = true;
 
     if (dict.host) {
+        var keys;
         switch (op) {
             case 'get':
-                var keys = [dict.host];
-                if (dict.hasOwnProperty('username')) {
-                    var keys2 = keys.map(function (host) { return dict.username + '@' + host; });
-                    if (dict.hasOwnProperty('password')) {
-                        var keys3 = keys.map(function (host) { return dict.username + ':' + dict.password + '@' + host; });
-                        keys = keys3.concat(keys2, keys);
-                    } else {
-                        keys = keys2.concat(keys);
-                    }
-                }
-                if (dict.hasOwnProperty('protocol')) {
-                    keys = mutate(keys, function (host) { return dict.protocol + '://' + host; });
-                }
+                keys = generateKeys(dict);
                 keys.some(function (key) {
                     if (store.hasOwnProperty(key)) {
                         copyProps(dict, store[key]);
@@ -173,12 +173,7 @@ function doIt () {
                 break;
             case 'store':
                 if (dict.hasOwnProperty('username') && dict.hasOwnProperty('password')) {
-                    keys = [
-                        dict.protocol + '://' + dict.username + '@' + dict.host,
-                        dict.username + '@' + dict.host,
-                        dict.protocol + '://' + dict.host,
-                        dict.host
-                    ];
+                    keys = generateKeys(dict);
                     var flag = keys.some(function (key) {
                         if (store.hasOwnProperty(key)) {
                             store[key] = {username: dict.username, password: dict.password};
@@ -194,12 +189,7 @@ function doIt () {
                 break;
             case 'erase':
                 if (dict.hasOwnProperty('username')) {
-                    keys = [
-                        dict.protocol + '://' + dict.username + '@' + dict.host,
-                        dict.username + '@' + dict.host,
-                        dict.protocol + '://' + dict.host,
-                        dict.host
-                    ];
+                    keys = generateKeys(dict);
                     keys.some(function (key) {
                         return delete store[key];
                     });
