@@ -6,65 +6,80 @@ var fs = require('fs');
 var path = require('path');
 
 var NodeRSA = require('node-rsa');
+var parseArgs = require('minimist');
 
 
-var args = process.argv, op = args[2];
+// set up parameters
 
-switch (true) {
-    case args.length < 3:
-    case args.length > 4:
-    case {'-e': 1, '-d': 1}[op] !== 1:
-        console.log('Usage: ejson -e|-d [file]');
-        console.log('  Option -e: encrypt a file using ~/.ssh/id_rsa.pub');
-        console.log('  Option -d: decrypt a file using ~/.ssh/id_rsa');
-        console.log('  If "file" is not specified ~/.credentials.json is used for encoding, and ~/.credentials.json.enc is used for decoding');
-        process.exit(1);
+var args = parseArgs(process.argv.slice(2)), op, fileName, keyName = args.k;
+
+if (!('e' in args ^ 'd' in args)) {
+    console.log('Usage: ejson [-k keyFile] -e|-d [file]');
+    console.log('  Option -e: encrypt a file');
+    console.log('  Option -d: decrypt a file');
+    console.log('  Option -k: use this file as a key, default: ~/.ssh/id_rsa');
+    console.log('  If "file" is not specified ~/.credentials.json is used for encoding, and ~/.credentials.json.enc is used for decoding');
+    process.exit(1);
 }
 
-var DEFAULT_INPUT_NAMES = {
-        '-e': path.resolve(process.env.HOME, '.credentials.json'),
-        '-d': path.resolve(process.env.HOME, '.credentials.json.enc')
-    },
-    DEFAULT_KEY_NAMES = {
-        '-e': path.resolve(process.env.HOME, '.ssh/id_rsa'),
-        '-d': path.resolve(process.env.HOME, '.ssh/id_rsa')
-    },
-    OPS = {'-e': 'encrypt', '-d': 'decrypt'};
+if (args.e) {
+    op = 'encrypt';
+    fileName = args.e;
+} else {
+    op = 'decrypt';
+    fileName = args.d;
+}
 
-var iName = args[3] || DEFAULT_INPUT_NAMES[op], oName = iName,
-    keyName = DEFAULT_KEY_NAMES[op];
+if (typeof fileName != 'string') {
+    fileName = args._[0];
+}
+
+if (typeof fileName != 'string') {
+    fileName = path.resolve(process.env.HOME, op == 'encrypt' ? '.credentials.json' : '.credentials.json.enc');
+}
+
+if (typeof keyName != 'string') {
+    keyName = path.resolve(process.env.HOME, '.ssh/id_rsa');
+}
+
+var outName = fileName;
 
 switch (op) {
-    case '-e':
-        oName += '.enc';
-        console.log('Encrypting', iName, 'to', oName, 'using', keyName, '...');
+    case 'encrypt':
+        outName += '.enc';
+        console.log('Encrypting', fileName, 'to', outName, 'using', keyName, '...');
         break;
-    case '-d':
-        if (/\.enc$/.test(oName)) {
-            oName = oName.substr(0, oName.length - 4);
+    case 'decrypt':
+        if (/\.enc$/.test(outName)) {
+            outName = outName.substr(0, outName.length - 4);
         } else {
-            oName += '.json';
+            outName += '.json';
         }
-        console.log('Decrypting', iName, 'to', oName, 'using', keyName, '...');
+        console.log('Decrypting', fileName, 'to', outName, 'using', keyName, '...');
         break;
 }
+
+
+// do it
 
 try {
     var key = new NodeRSA(fs.readFileSync(keyName), 'pkcs1-private-pem'),
-        input = fs.readFileSync(iName);
+        input = fs.readFileSync(fileName);
     if (op === '-e') {
         // check if valid JSON
         JSON.parse(input.toString());
     }
-    var output = key[OPS[op]](input);
+    var output = key[op](input);
     if (op === '-d') {
         // check if valid JSON
         JSON.parse(output.toString());
     }
-    fs.writeFileSync(oName, output);
-    fs.unlinkSync(iName);
+    fs.writeFileSync(outName, output);
+    fs.unlinkSync(fileName);
     console.log('Done');
 } catch(e) {
     console.error('ERROR:', e);
     process.exit(2);
 }
+
+process.exit(0);
