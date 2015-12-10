@@ -1,6 +1,6 @@
 {
   "name": "git-credential-ejson",
-  "version": "1.0.1",
+  "version": "1.0.2",
     "description": "Git credential helper that keeps its data store in an encrypted JSON using id_rsa or similar certificate.",
   "bin": {
     "ejson": "ejson.js",
