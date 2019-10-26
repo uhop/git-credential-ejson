@@ -26,6 +26,6 @@
   "license": "BSD-3-Clause",
   "dependencies": {
     "minimist": "^1.2.0",
-    "node-rsa": "^0.2.26"
+    "node-rsa": "^1.0.6"
   }
 }
