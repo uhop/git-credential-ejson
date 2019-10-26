@@ -1,5 +1,7 @@
 # git-credential-ejson
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/uhop/git-credential-ejson.svg)](https://greenkeeper.io/)
+
 Git credential helper that keeps its data store in an encrypted JSON using id_rsa or similar certificate.
 
 ## Installation
